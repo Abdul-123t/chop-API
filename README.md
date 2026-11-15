@@ -52,7 +52,7 @@ tests/                   Vitest unit tests
 
 Copy `.env.example` to `.env.local` and fill it in:
 
-- `DATABASE_URL`: PostgreSQL connection string for the CHOP database.
+- `DATABASE_URL`: PostgreSQL connection string for the CHOP database. CHOP uses Afribase: copy the pooled connection string (port 6543) from the project settings and append `?sslmode=verify-full`. Only this string is needed; the Afribase anon, service_role and JWT keys are not used by this API.
 - `APP_SECRET`: at least 32 random characters, for example `openssl rand -base64 48`. Changing it signs everyone out and invalidates existing unsubscribe links.
 - `SEED_ADMIN_EMAILS`: comma-separated admin emails that `pnpm db:seed` creates. Entries that are not email addresses yet (like the placeholder) are skipped.
 - `FRONTEND_URL`: where the website is served, used in email links.
@@ -81,12 +81,12 @@ To give an admin a new password: `pnpm db:seed -- --reset someone@example.com`.
 
 ## Deploying on Render
 
-1. Create a PostgreSQL database (Render Postgres, Neon or Supabase) and copy its connection string into `DATABASE_URL`.
+1. Put the Afribase pooled connection string (with `?sslmode=verify-full`) into `DATABASE_URL`. The database is already migrated and seeded; `pnpm db:deploy` in the build step is a no-op until a new migration is added.
 2. Create a Web Service from this repository:
    - Build command: `pnpm install --frozen-lockfile && pnpm db:deploy && pnpm build`
    - Start command: `pnpm start` (Next.js reads Render's `PORT`)
 3. Add every variable from `.env.example`.
-4. After the first deploy, open the service's Shell and run `pnpm db:seed` to create the admin accounts. Save the printed passwords.
+4. To add an admin later, put their email in `SEED_ADMIN_EMAILS` and run `pnpm db:seed` from the service Shell (or locally against the same `DATABASE_URL`). Run `node prisma/seed.ts --reset <email>` to reset a password.
 5. Set `VITE_API_URL` on the frontend project to the service URL.
 
 ## Notes
