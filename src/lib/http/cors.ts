@@ -1,6 +1,6 @@
 import { getAllowedOrigins } from '@/config/env';
 
-const ALLOWED_METHODS = 'GET, POST, OPTIONS';
+const ALLOWED_METHODS = 'GET, POST, PATCH, DELETE, OPTIONS';
 const ALLOWED_HEADERS = 'Content-Type, Authorization';
 
 export function resolveAllowedOrigin(origin: string | null, allowed: string[]): string | null {

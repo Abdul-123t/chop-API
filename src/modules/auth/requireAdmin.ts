@@ -1,6 +1,6 @@
 import { UnauthorizedError } from '@/lib/errors';
 import { authService } from '@/modules/auth/auth.service';
-import type { SessionPayload } from '@/modules/auth/auth.schema';
+import type { AdminSession } from '@/modules/auth/auth.schema';
 
 export function bearerToken(request: Request): string {
   const header = request.headers.get('authorization') ?? '';
@@ -8,8 +8,8 @@ export function bearerToken(request: Request): string {
   return scheme?.toLowerCase() === 'bearer' && token ? token.trim() : '';
 }
 
-export function requireAdmin(request: Request): SessionPayload {
-  const session = authService.verify(bearerToken(request));
+export async function requireAdmin(request: Request): Promise<AdminSession> {
+  const session = await authService.verify(bearerToken(request));
   if (!session) throw new UnauthorizedError();
   return session;
 }

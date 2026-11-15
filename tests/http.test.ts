@@ -23,7 +23,7 @@ describe('apiRoute', () => {
     const handler = apiRoute(async () => {
       throw new ValidationError('Bad input.', [{ path: 'email', message: 'Invalid' }]);
     });
-    const response = await handler(new Request('https://api.test'));
+    const response = await handler(new Request('https://api.test'), undefined);
     expect(response.status).toBe(400);
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(await response.json()).toMatchObject({ success: false, code: 'validation_error' });
@@ -33,7 +33,7 @@ describe('apiRoute', () => {
     const handler = apiRoute(async () => {
       throw new Error('secret detail');
     });
-    const response = await handler(new Request('https://api.test'));
+    const response = await handler(new Request('https://api.test'), undefined);
     expect(response.status).toBe(503);
     expect(JSON.stringify(await response.json())).not.toContain('secret detail');
   });

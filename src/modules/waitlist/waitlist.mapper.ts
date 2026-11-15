@@ -1,53 +1,8 @@
-import { toCell } from '@/lib/sheets/cells';
-import type { CustomerRegistration, Registration, VendorRegistration } from '@/modules/waitlist/waitlist.schema';
+import type { Prisma } from '@/generated/prisma/client';
+import type { Registration } from '@/modules/waitlist/waitlist.schema';
 
 export function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? '';
-}
-
-export function customerRow(registration: CustomerRegistration, id: string, timestamp: string): string[] {
-  return [
-    id,
-    timestamp,
-    toCell(firstName(registration.fullName)),
-    registration.whatsapp,
-    toCell(registration.email),
-    toCell(registration.area),
-    toCell(registration.searches.join(', ')),
-    'Yes',
-    timestamp,
-    'Registered',
-  ];
-}
-
-export function vendorRow(registration: VendorRegistration, id: string, timestamp: string): string[] {
-  return [
-    id,
-    timestamp,
-    toCell(registration.businessName),
-    toCell(registration.fullName),
-    registration.whatsapp,
-    toCell(registration.email),
-    toCell(registration.category),
-    toCell(registration.otherCategory),
-    toCell(registration.operatingModel),
-    toCell(registration.operatingLocations.join(', ')),
-    toCell(registration.businessDescription),
-    toCell(registration.foodCategories.join(', ')),
-    toCell(registration.fulfilmentOptions.join(', ')),
-    toCell(registration.socialMediaLink),
-    toCell(registration.additionalComments),
-    'Yes',
-    'Pending review',
-    '',
-    '',
-  ];
-}
-
-export function registrationRow(registration: Registration, id: string, timestamp: string): string[] {
-  return registration.type === 'customer'
-    ? customerRow(registration, id, timestamp)
-    : vendorRow(registration, id, timestamp);
 }
 
 export function phoneKey(value: unknown): string {
@@ -55,4 +10,55 @@ export function phoneKey(value: unknown): string {
   if (digits.startsWith('234') && digits.length === 13) return digits.slice(3);
   if (digits.startsWith('0') && digits.length === 11) return digits.slice(1);
   return digits;
+}
+
+const orNull = (value: string) => (value.trim() ? value.trim() : null);
+
+export function entryId(type: Registration['type'], uuid: string): string {
+  return `${type === 'customer' ? 'CHOP-C' : 'CHOP-V'}-${uuid}`;
+}
+
+export function toCreateInput(registration: Registration, id: string, now: Date): Prisma.WaitlistEntryCreateInput {
+  const base = {
+    id,
+    fullName: registration.fullName,
+    whatsapp: registration.whatsapp,
+    phoneKey: phoneKey(registration.whatsapp),
+    email: orNull(registration.email.toLowerCase()),
+    area: registration.area,
+    consentAt: now,
+    createdAt: now,
+  };
+
+  if (registration.type === 'customer') {
+    return {
+      ...base,
+      type: 'CUSTOMER',
+      status: 'REGISTERED',
+      student: orNull(registration.student),
+      interests: registration.searches,
+    };
+  }
+
+  return {
+    ...base,
+    type: 'VENDOR',
+    status: 'PENDING_REVIEW',
+    interests: registration.foodCategories,
+    vendor: {
+      create: {
+        businessName: registration.businessName,
+        category: registration.category,
+        otherCategory: orNull(registration.otherCategory),
+        delivers: registration.delivers,
+        operatingModel: orNull(registration.operatingModel),
+        operatingLocations: registration.operatingLocations,
+        address: orNull(registration.address),
+        businessDescription: orNull(registration.businessDescription),
+        fulfilmentOptions: registration.fulfilmentOptions,
+        socialMediaLink: orNull(registration.socialMediaLink),
+        additionalComments: orNull(registration.additionalComments),
+      },
+    },
+  };
 }

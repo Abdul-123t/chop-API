@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EntryType {
+  CUSTOMER
+  VENDOR
+}
+
+enum EntryStatus {
+  REGISTERED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model WaitlistEntry {
+  id         String         @id
+  type       EntryType
+  fullName   String
+  whatsapp   String
+  phoneKey   String
+  email      String?
+  area       String
+  student    String?
+  interests  String[]
+  status     EntryStatus
+  adminNotes String?
+  source     String         @default("website")
+  consentAt  DateTime
+  reviewedAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  vendor     VendorProfile?
+
+  @@unique([type, phoneKey])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model VendorProfile {
+  entryId             String        @id
+  entry               WaitlistEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  businessName        String
+  category            String
+  otherCategory       String?
+  delivers            String
+  operatingModel      String?
+  operatingLocations  String[]
+  address             String?
+  businessDescription String?
+  fulfilmentOptions   String[]
+  socialMediaLink     String?
+  additionalComments  String?
+}
+
+model EmailPreference {
+  email          String    @id
+  unsubscribedAt DateTime?
+  source         String
+  updatedAt      DateTime  @updatedAt
+}
+
+model Newsletter {
+  id         String   @id
+  subject    String
+  message    String
+  audience   String
+  recipients Int
+  delivered  Int
+  failed     Int
+  sentBy     String
+  sentAt     DateTime @default(now())
+
+  @@index([sentAt])
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

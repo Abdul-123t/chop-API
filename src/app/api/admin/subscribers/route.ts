@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = apiRoute(async (request) => {
-  requireAdmin(request);
+  await requireAdmin(request);
   const overview = await subscribersService.overview();
   return ok({ ...overview });
 });

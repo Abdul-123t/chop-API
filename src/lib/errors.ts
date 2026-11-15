@@ -27,6 +27,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class NotFoundError extends AppError {
+  constructor(message = 'This item no longer exists.') {
+    super(404, 'not_found', message);
+  }
+}
+
 export class RateLimitError extends AppError {
   constructor(message = 'Too many attempts. Please wait a few minutes and try again.') {
     super(429, 'rate_limited', message);

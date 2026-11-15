@@ -1,30 +1,33 @@
 import { getEnv } from '@/config/env';
 import { UnauthorizedError } from '@/lib/errors';
-import { verifyPassword } from '@/lib/security/password';
+import { hashPassword, verifyPassword } from '@/lib/security/password';
 import { createRateLimiter } from '@/lib/security/rateLimit';
-import { safeEqual } from '@/lib/security/signing';
 import { parseWith } from '@/lib/validation';
-import { loginSchema, type SessionPayload } from '@/modules/auth/auth.schema';
+import { adminsRepository } from '@/modules/admins/admins.repository';
+import { loginSchema, type AdminSession } from '@/modules/auth/auth.schema';
 import { issueSessionToken, readSessionToken } from '@/modules/auth/session.token';
 
 const loginLimiter = createRateLimiter(15 * 60 * 1000, 5);
+const DECOY_HASH = hashPassword('decoy-password-for-timing');
 
 export const authService = {
-  login(input: unknown, clientIp: string) {
+  async login(input: unknown, clientIp: string) {
     loginLimiter.enforce(clientIp);
     const { email, password } = parseWith(loginSchema, input);
-    const env = getEnv();
-    const passwordMatches = verifyPassword(password, env.ADMIN_PASSWORD_HASH);
-    if (!safeEqual(email, env.ADMIN_EMAIL) || !passwordMatches) {
-      throw new UnauthorizedError('Incorrect email or password.');
-    }
-    return issueSessionToken(env.ADMIN_EMAIL, env.APP_SECRET);
+    const admin = await adminsRepository.findByEmail(email);
+    const passwordMatches = verifyPassword(password, admin?.passwordHash ?? DECOY_HASH);
+    if (!admin || !passwordMatches) throw new UnauthorizedError('Incorrect email or password.');
+
+    await adminsRepository.recordLogin(admin.id);
+    const session = issueSessionToken(admin.id, getEnv().APP_SECRET);
+    return { ...session, email: admin.email, name: admin.name };
   },
 
-  verify(token: string): SessionPayload | null {
+  async verify(token: string): Promise<AdminSession | null> {
     if (!token) return null;
-    const env = getEnv();
-    const session = readSessionToken(token, env.APP_SECRET);
-    return session && session.sub === env.ADMIN_EMAIL ? session : null;
+    const payload = readSessionToken(token, getEnv().APP_SECRET);
+    if (!payload) return null;
+    const admin = await adminsRepository.findById(payload.sub);
+    return admin ? { ...admin, expiresAt: payload.exp } : null;
   },
 };

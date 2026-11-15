@@ -23,13 +23,13 @@ describe('unsubscribe tokens', () => {
 describe('session tokens', () => {
   it('are valid until they expire', () => {
     const now = 1_000_000;
-    const { token } = issueSessionToken('admin@example.com', secret, now);
-    expect(readSessionToken(token, secret, now + 1000)?.sub).toBe('admin@example.com');
+    const { token } = issueSessionToken('admin-1', secret, now);
+    expect(readSessionToken(token, secret, now + 1000)?.sub).toBe('admin-1');
     expect(readSessionToken(token, secret, now + SESSION_TTL_MS + 1)).toBeNull();
   });
 
   it('cannot be used as unsubscribe tokens', () => {
-    const { token } = issueSessionToken('admin@example.com', secret);
+    const { token } = issueSessionToken('admin-1', secret);
     expect(readUnsubscribeToken(token, secret)).toBeNull();
   });
 });

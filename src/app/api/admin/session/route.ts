@@ -9,13 +9,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const POST = apiRoute(async (request) => {
-  const session = authService.login(await readJson(request), getClientIp(request));
+  const session = await authService.login(await readJson(request), getClientIp(request));
   return ok(session);
 });
 
 export const GET = apiRoute(async (request) => {
-  const session = requireAdmin(request);
-  return ok({ authenticated: true, email: session.sub, expiresAt: session.exp });
+  const session = await requireAdmin(request);
+  return ok({ authenticated: true, email: session.email, name: session.name, expiresAt: session.expiresAt });
 });
 
 export const OPTIONS = preflight;

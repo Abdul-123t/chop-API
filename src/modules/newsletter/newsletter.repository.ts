@@ -1,38 +1,26 @@
-import { fromCell, toCell } from '@/lib/sheets/cells';
-import { appendRows, readRows } from '@/lib/sheets/table';
-import { NEWSLETTER_LOG_TAB } from '@/lib/sheets/tabs';
+import { getDb } from '@/lib/db/client';
 import type { NewsletterLogEntry } from '@/modules/newsletter/newsletter.types';
 
-const toNumber = (value: unknown) => Number.parseInt(fromCell(value), 10) || 0;
+const HISTORY_LIMIT = 50;
+
+export interface NewsletterRecord extends NewsletterLogEntry {
+  message: string;
+  sentBy: string;
+}
 
 export const newsletterRepository = {
-  async log(entry: NewsletterLogEntry): Promise<void> {
-    await appendRows(NEWSLETTER_LOG_TAB, [
-      [
-        entry.id,
-        entry.sentAt,
-        toCell(entry.subject),
-        toCell(entry.audience),
-        String(entry.recipients),
-        String(entry.delivered),
-        String(entry.failed),
-      ],
-    ]);
+  async log(record: NewsletterRecord): Promise<void> {
+    await getDb().newsletter.create({
+      data: { ...record, sentAt: new Date(record.sentAt) },
+    });
   },
 
   async history(): Promise<NewsletterLogEntry[]> {
-    const rows = await readRows(NEWSLETTER_LOG_TAB);
-    return rows
-      .filter((row) => fromCell(row[0]))
-      .map((row) => ({
-        id: fromCell(row[0]),
-        sentAt: fromCell(row[1]),
-        subject: fromCell(row[2]),
-        audience: fromCell(row[3]),
-        recipients: toNumber(row[4]),
-        delivered: toNumber(row[5]),
-        failed: toNumber(row[6]),
-      }))
-      .reverse();
+    const rows = await getDb().newsletter.findMany({
+      orderBy: { sentAt: 'desc' },
+      take: HISTORY_LIMIT,
+      select: { id: true, sentAt: true, subject: true, audience: true, recipients: true, delivered: true, failed: true },
+    });
+    return rows.map((row) => ({ ...row, sentAt: row.sentAt.toISOString() }));
   },
 };

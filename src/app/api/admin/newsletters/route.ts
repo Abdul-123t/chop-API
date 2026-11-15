@@ -11,13 +11,13 @@ export const maxDuration = 60;
 const MAX_SEND_BYTES = 512 * 1024;
 
 export const GET = apiRoute(async (request) => {
-  requireAdmin(request);
+  await requireAdmin(request);
   return ok({ newsletters: await newsletterService.history() });
 });
 
 export const POST = apiRoute(async (request) => {
-  requireAdmin(request);
-  const newsletter = await newsletterService.send(await readJson(request, MAX_SEND_BYTES));
+  const admin = await requireAdmin(request);
+  const newsletter = await newsletterService.send(await readJson(request, MAX_SEND_BYTES), admin.email);
   return ok({ newsletter: { ...newsletter } });
 });
 

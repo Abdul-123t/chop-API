@@ -1,8 +1,8 @@
 # chop-API
 
-Backend for the CHOP waitlist. It is a Next.js (App Router) API-only service written in TypeScript with Zod validation. It stores data in the existing **CHOP — PRE-LAUNCH DATABASE** Google Sheet and sends email through the [Brevo](https://brevo.com) transactional email API.
+Backend for the CHOP waitlist. It is a Next.js (App Router) API-only service written in TypeScript with Zod validation and Prisma on PostgreSQL. Email goes out through the [Brevo](https://brevo.com) transactional email API.
 
-All user interface (the waitlist form, the admin dashboard and the unsubscribe page) lives in the frontend repository. The frontend talks to this service over HTTPS.
+All user interface (the waitlist form, the admin dashboard and the unsubscribe page) lives in the frontend repository. The admin dashboard is where the team views and manages waitlist entries.
 
 ## Endpoints
 
@@ -13,7 +13,9 @@ All user interface (the waitlist form, the admin dashboard and the unsubscribe p
 | POST | `/api/unsubscribe` | signed token | Unsubscribe an email (`{ "token": "..." }` or one-click `?token=`) |
 | POST | `/api/admin/session` | email + password | Sign in, returns a bearer token valid for 12 hours |
 | GET | `/api/admin/session` | bearer | Check a token |
-| GET | `/api/admin/subscribers` | bearer | List everyone on the waitlist with stats |
+| GET | `/api/admin/subscribers` | bearer | List every waitlist entry with stats |
+| PATCH | `/api/admin/subscribers/:id` | bearer | Update an entry's `status` and/or `adminNotes` |
+| DELETE | `/api/admin/subscribers/:id` | bearer | Delete an entry |
 | GET | `/api/admin/newsletters` | bearer | Newsletter send history |
 | POST | `/api/admin/newsletters` | bearer | Send a newsletter to `all`, `customers`, `vendors` or `selected` ids |
 | POST | `/api/admin/newsletters/preview` | bearer | Render a newsletter preview |
@@ -24,58 +26,72 @@ All responses are JSON shaped as `{ "success": true, ... }` or `{ "success": fal
 ## Project layout
 
 ```
+prisma/
+  schema.prisma          WaitlistEntry, VendorProfile, EmailPreference, Newsletter, AdminUser
+  migrations/            SQL migrations
+  seed.ts                creates admin accounts
 src/
   app/api/...            route handlers only (thin: parse request, call a service, respond)
   config/                env validation (Zod) and the shared option catalog
+  generated/prisma/      generated Prisma client (not committed)
   lib/
+    db/                  Prisma client and error helpers
     email/               provider interface, Brevo client, templates
     http/                CORS, body parsing, error responses, route wrapper
-    security/            HMAC signing, unsubscribe tokens, rate limiting
-    sheets/              Google Sheets client, tab definitions, cell escaping, table helpers
+    security/            HMAC signing, password hashing, unsubscribe tokens, rate limiting
   modules/
+    admins/              admin account repository
     auth/                admin login and bearer session tokens
-    waitlist/            schema, sheet row mapper, repository, notifications, service
-    subscribers/         subscriber mapping, email preferences, stats, service
-    newsletter/          schema, audience selection, composer, log repository, service
+    waitlist/            schema, mapper, repository, notifications, service
+    subscribers/         entry mapping, email preferences, stats, admin updates
+    newsletter/          schema, audience selection, composer, repository, service
 tests/                   Vitest unit tests
 ```
 
-## Google Sheet tabs
+## Environment
 
-The service uses (and creates when missing) four tabs:
+Copy `.env.example` to `.env.local` and fill it in:
 
-- `Customer Waitlist` and `Vendor Applications` are the same columns the frontend's original `/api/waitlist` function writes, so both can run against the same sheet.
-- `Email Preferences` is an append-only log of unsubscribe events. The latest row per email wins.
-- `Newsletter Log` records each newsletter send.
+- `DATABASE_URL`: PostgreSQL connection string for the CHOP database.
+- `APP_SECRET`: at least 32 random characters, for example `openssl rand -base64 48`. Changing it signs everyone out and invalidates existing unsubscribe links.
+- `SEED_ADMIN_EMAILS`: comma-separated admin emails that `pnpm db:seed` creates. Entries that are not email addresses yet (like the placeholder) are skipped.
+- `FRONTEND_URL`: where the website is served, used in email links.
+- `PUBLIC_API_URL`: where this API is served, used for one-click unsubscribe headers.
+- `ADMIN_PATH`: the admin route on the frontend (default `/admin`).
+- `ALLOWED_ORIGINS`: comma-separated origins allowed to call the API (defaults to `FRONTEND_URL`).
+- `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`: email sending. The from address must be a verified sender in Brevo. Without these, signups still save but no email is sent.
+- `ADMIN_NOTIFY_EMAIL`: comma-separated inboxes notified for every new signup. Placeholders that are not email addresses are ignored.
 
-## Setup
+## Local setup
 
-1. Install dependencies: `pnpm install`.
-2. Copy `.env.example` to `.env.local` and fill it in:
-   - `GOOGLE_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`: the same service account the frontend uses. Share the sheet with its `client_email` as Editor.
-   - `APP_SECRET`: at least 32 random characters, for example `openssl rand -base64 48`. Changing it invalidates admin sessions and unsubscribe links.
-   - `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`: the admin account. Run `pnpm seed:admin you@example.com` to generate a password and its hash (or pass your own password of 12+ characters as a second argument). Only the hash goes in the environment.
-   - `FRONTEND_URL`: where the website is served, used in email links.
-   - `PUBLIC_API_URL`: where this API is served, used for one-click unsubscribe headers.
-   - `ADMIN_PATH`: the admin route on the frontend (default `/admin`).
-   - `ALLOWED_ORIGINS`: comma-separated origins allowed to call the API (defaults to `FRONTEND_URL`).
-   - `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`: email sending. The from address must be a verified sender in Brevo. Without these, signups still save but no email is sent.
-   - `ADMIN_NOTIFY_EMAIL`: comma-separated team inbox(es) notified for every new signup.
-3. Run `pnpm dev` (port 4000).
+```bash
+pnpm install
+pnpm db:migrate      # creates the tables in DATABASE_URL
+pnpm db:seed         # creates admins from SEED_ADMIN_EMAILS and prints their passwords once
+pnpm dev             # http://localhost:4000
+```
+
+To give an admin a new password: `pnpm db:seed -- --reset someone@example.com`.
 
 ## Scripts
 
 - `pnpm dev`, `pnpm build`, `pnpm start`
-- `pnpm test` runs unit tests
-- `pnpm typecheck` and `pnpm lint`
-- `pnpm check` runs all three checks
+- `pnpm db:migrate`, `pnpm db:deploy`, `pnpm db:seed`, `pnpm db:studio`
+- `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm check`
 
-## Deploying
+## Deploying on Render
 
-On Render, create a Web Service from this repository with build command `pnpm install --frozen-lockfile && pnpm build` and start command `pnpm start` (Next.js reads Render's `PORT`). Vercel also works as a separate project. Add every variable from `.env.example`, then set `VITE_API_URL` on the frontend project to the service URL.
+1. Create a PostgreSQL database (Render Postgres, Neon or Supabase) and copy its connection string into `DATABASE_URL`.
+2. Create a Web Service from this repository:
+   - Build command: `pnpm install --frozen-lockfile && pnpm db:deploy && pnpm build`
+   - Start command: `pnpm start` (Next.js reads Render's `PORT`)
+3. Add every variable from `.env.example`.
+4. After the first deploy, open the service's Shell and run `pnpm db:seed` to create the admin accounts. Save the printed passwords.
+5. Set `VITE_API_URL` on the frontend project to the service URL.
 
 ## Notes
 
-- Rate limits and the duplicate-phone check run per server instance and are best-effort; Google Sheets has no unique constraint.
-- Newsletters are sent five at a time with retries on transient Brevo errors, tagged with the newsletter ID. Recipients without an email or who unsubscribed are skipped automatically, and duplicate emails receive one copy.
+- Duplicate signups are blocked by a unique constraint on entry type and normalized WhatsApp number.
+- Newsletters are sent five at a time with retries on transient Brevo errors, tagged with the newsletter ID. Recipients without an email or who unsubscribed are skipped, and duplicate emails receive one copy.
 - Brevo's free plan allows 300 emails per day; larger sends need a paid plan.
+- Rate limits are kept in memory per server instance.

@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const POST = apiRoute(async (request) => {
-  requireAdmin(request);
+  await requireAdmin(request);
   const preview = newsletterService.preview(await readJson(request, 64 * 1024));
   return ok({ ...preview });
 });

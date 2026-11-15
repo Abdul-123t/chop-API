@@ -1,4 +1,4 @@
-import { getEnv, splitList } from '@/config/env';
+import { emailList, getEnv } from '@/config/env';
 import { ServiceUnavailableError } from '@/lib/errors';
 import { createBrevoSender } from '@/lib/email/brevo';
 import type { EmailSender } from '@/lib/email/types';
@@ -26,5 +26,5 @@ export function requireEmailSender(): EmailSender {
 }
 
 export function getAdminRecipients(): string[] {
-  return splitList(getEnv().ADMIN_NOTIFY_EMAIL);
+  return emailList(getEnv().ADMIN_NOTIFY_EMAIL);
 }

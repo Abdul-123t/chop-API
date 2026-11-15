@@ -10,12 +10,11 @@ const optionalEmail = optionalString.pipe(z.email().optional());
 
 const baseUrl = z.url().transform((value) => value.replace(/\/+$/, ''));
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const envSchema = z.object({
-  GOOGLE_SPREADSHEET_ID: z.string().trim().min(1),
-  GOOGLE_SERVICE_ACCOUNT_JSON: z.string().min(1),
+  DATABASE_URL: z.string().trim().regex(/^postgres(ql)?:\/\//, 'Must be a PostgreSQL connection string.'),
   APP_SECRET: z.string().trim().min(32),
-  ADMIN_EMAIL: z.email().transform((value) => value.toLowerCase()),
-  ADMIN_PASSWORD_HASH: z.string().trim().regex(/^scrypt:\d+:\d+:\d+:[\w-]+:[\w-]+$/),
   FRONTEND_URL: baseUrl,
   PUBLIC_API_URL: baseUrl,
   ADMIN_PATH: z
@@ -51,6 +50,10 @@ export function splitList(value: string | undefined): string[] {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+export function emailList(value: string | undefined): string[] {
+  return splitList(value).filter((item) => EMAIL_PATTERN.test(item));
 }
 
 export function getAllowedOrigins(env: Env = getEnv()): string[] {

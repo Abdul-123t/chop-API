@@ -1,7 +1,7 @@
 import { applyCors } from '@/lib/http/cors';
 import { errorResponse } from '@/lib/http/responses';
 
-type Handler = (request: Request) => Promise<Response>;
+type Handler<Context> = (request: Request, context: Context) => Promise<Response>;
 
 function withSecurityHeaders(response: Response): Response {
   response.headers.set('Cache-Control', 'no-store');
@@ -9,11 +9,11 @@ function withSecurityHeaders(response: Response): Response {
   return response;
 }
 
-export function apiRoute(handler: Handler): Handler {
-  return async (request) => {
+export function apiRoute<Context = unknown>(handler: Handler<Context>): Handler<Context> {
+  return async (request, context) => {
     let response: Response;
     try {
-      response = await handler(request);
+      response = await handler(request, context);
     } catch (error) {
       response = errorResponse(error);
     }

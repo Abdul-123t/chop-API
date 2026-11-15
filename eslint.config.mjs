@@ -5,5 +5,5 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores(['.next/**', 'node_modules/**', 'next-env.d.ts']),
+  globalIgnores(['.next/**', 'node_modules/**', 'next-env.d.ts', 'src/generated/**']),
 ]);

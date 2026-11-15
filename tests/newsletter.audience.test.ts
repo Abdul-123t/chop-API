@@ -10,10 +10,14 @@ const make = (overrides: Partial<Subscriber>): Subscriber => ({
   email: 'ada@example.com',
   whatsapp: '',
   area: '',
+  student: '',
   interests: [],
-  status: '',
+  status: 'REGISTERED',
+  adminNotes: '',
   joinedAt: '',
+  reviewedAt: '',
   subscribed: true,
+  vendor: null,
   ...overrides,
 });
 

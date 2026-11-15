@@ -6,8 +6,15 @@ export const loginSchema = z.object({
 });
 
 export const sessionPayloadSchema = z.object({
-  sub: z.email(),
+  sub: z.string().min(1),
   exp: z.number().int().positive(),
 });
 
 export type SessionPayload = z.infer<typeof sessionPayloadSchema>;
+
+export interface AdminSession {
+  id: string;
+  email: string;
+  name: string | null;
+  expiresAt: number;
+}

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ValidationError } from '@/lib/errors';
 import { requireEmailSender } from '@/lib/email/sender';
+import { publishAdminEvent } from '@/lib/realtime/publish';
 import { parseWith } from '@/lib/validation';
 import { subscribersRepository } from '@/modules/subscribers/subscribers.repository';
 import { describeAudience, selectRecipients } from '@/modules/newsletter/newsletter.audience';
@@ -25,7 +26,7 @@ export const newsletterService = {
     return { to };
   },
 
-  async send(input: unknown): Promise<NewsletterLogEntry> {
+  async send(input: unknown, sentBy: string): Promise<NewsletterLogEntry> {
     const { audience, ...content } = parseWith(sendNewsletterSchema, input);
     const sender = requireEmailSender();
     const recipients = selectRecipients(await subscribersRepository.list(), audience);
@@ -47,7 +48,8 @@ export const newsletterService = {
       recipients: recipients.length,
       ...result,
     };
-    await newsletterRepository.log(entry);
+    await newsletterRepository.log({ ...entry, message: content.message, sentBy });
+    await publishAdminEvent('newsletter.sent', id);
     return entry;
   },
 
