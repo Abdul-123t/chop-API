@@ -15,7 +15,7 @@ export const POST = apiRoute(async (request) => {
 
 export const GET = apiRoute(async (request) => {
   const session = requireAdmin(request);
-  return ok({ authenticated: true, expiresAt: session.exp });
+  return ok({ authenticated: true, email: session.sub, expiresAt: session.exp });
 });
 
 export const OPTIONS = preflight;

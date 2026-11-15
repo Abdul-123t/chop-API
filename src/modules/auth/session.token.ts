@@ -4,9 +4,13 @@ import { sessionPayloadSchema, type SessionPayload } from '@/modules/auth/auth.s
 const PURPOSE = 'admin-session';
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
-export function issueSessionToken(secret: string, now = Date.now()): { token: string; expiresAt: number } {
-  const payload: SessionPayload = { sub: 'admin', exp: now + SESSION_TTL_MS };
-  return { token: sign(PURPOSE, JSON.stringify(payload), secret), expiresAt: payload.exp };
+export function issueSessionToken(
+  email: string,
+  secret: string,
+  now = Date.now()
+): { token: string; expiresAt: number; email: string } {
+  const payload: SessionPayload = { sub: email, exp: now + SESSION_TTL_MS };
+  return { token: sign(PURPOSE, JSON.stringify(payload), secret), expiresAt: payload.exp, email };
 }
 
 export function readSessionToken(token: string, secret: string, now = Date.now()): SessionPayload | null {

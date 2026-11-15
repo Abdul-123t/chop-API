@@ -18,11 +18,12 @@
   "scripts": {
     "dev": "next dev --port 4000",
     "build": "next build",
-    "start": "next start --port 4000",
+    "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm typecheck && pnpm lint && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "seed:admin": "node scripts/seed-admin.ts"
   },
   "dependencies": {
     "@googleapis/sheets": "^18.1.3",

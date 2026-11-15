@@ -1,6 +1,6 @@
 import { getEnv, splitList } from '@/config/env';
 import { ServiceUnavailableError } from '@/lib/errors';
-import { createResendSender } from '@/lib/email/resend';
+import { createBrevoSender } from '@/lib/email/brevo';
 import type { EmailSender } from '@/lib/email/types';
 
 let sender: EmailSender | null | undefined;
@@ -9,8 +9,12 @@ export function getEmailSender(): EmailSender | null {
   if (sender !== undefined) return sender;
   const env = getEnv();
   sender =
-    env.RESEND_API_KEY && env.EMAIL_FROM
-      ? createResendSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO })
+    env.BREVO_API_KEY && env.EMAIL_FROM_ADDRESS
+      ? createBrevoSender({
+          apiKey: env.BREVO_API_KEY,
+          sender: { email: env.EMAIL_FROM_ADDRESS, name: env.EMAIL_FROM_NAME },
+          replyTo: env.EMAIL_REPLY_TO ? { email: env.EMAIL_REPLY_TO, name: env.EMAIL_FROM_NAME } : undefined,
+        })
       : null;
   return sender;
 }

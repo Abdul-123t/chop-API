@@ -6,22 +6,28 @@ const optionalString = z
   .optional()
   .transform((value) => (value ? value : undefined));
 
+const optionalEmail = optionalString.pipe(z.email().optional());
+
+const baseUrl = z.url().transform((value) => value.replace(/\/+$/, ''));
+
 const envSchema = z.object({
   GOOGLE_SPREADSHEET_ID: z.string().trim().min(1),
   GOOGLE_SERVICE_ACCOUNT_JSON: z.string().min(1),
   APP_SECRET: z.string().trim().min(32),
-  ADMIN_PASSWORD: z.string().min(12),
-  FRONTEND_URL: z.url().transform((value) => value.replace(/\/+$/, '')),
-  PUBLIC_API_URL: z.url().transform((value) => value.replace(/\/+$/, '')),
+  ADMIN_EMAIL: z.email().transform((value) => value.toLowerCase()),
+  ADMIN_PASSWORD_HASH: z.string().trim().regex(/^scrypt:\d+:\d+:\d+:[\w-]+:[\w-]+$/),
+  FRONTEND_URL: baseUrl,
+  PUBLIC_API_URL: baseUrl,
   ADMIN_PATH: z
     .string()
     .trim()
     .regex(/^\/[A-Za-z0-9/_-]*$/)
     .default('/admin'),
   ALLOWED_ORIGINS: optionalString,
-  RESEND_API_KEY: optionalString,
-  EMAIL_FROM: optionalString,
-  EMAIL_REPLY_TO: optionalString,
+  BREVO_API_KEY: optionalString,
+  EMAIL_FROM_ADDRESS: optionalEmail,
+  EMAIL_FROM_NAME: z.string().trim().min(1).default('CHOP'),
+  EMAIL_REPLY_TO: optionalEmail,
   ADMIN_NOTIFY_EMAIL: optionalString,
 });
 
@@ -33,8 +39,8 @@ export function getEnv(): Env {
   if (cached) return cached;
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
-    const missing = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
-    throw new Error(`Invalid server environment: ${missing}`);
+    const invalid = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
+    throw new Error(`Invalid server environment: ${invalid}`);
   }
   cached = parsed.data;
   return cached;
