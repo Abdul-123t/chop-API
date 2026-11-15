@@ -54,14 +54,14 @@ Copy `.env.example` to `.env.local` and fill it in:
 
 - `DATABASE_URL`: PostgreSQL connection string for the CHOP database. CHOP uses Afribase: copy the pooled connection string (port 6543) from the project settings and append `?sslmode=verify-full`. Only this string is needed; the Afribase anon, service_role and JWT keys are not used by this API.
 - `APP_SECRET`: at least 32 random characters, for example `openssl rand -base64 48`. Changing it signs everyone out and invalidates existing unsubscribe links.
-- `SEED_ADMIN_EMAILS`: comma-separated admin emails that `pnpm db:seed` creates. Entries that are not email addresses yet (like the placeholder) are skipped.
+- `SEED_ADMIN_EMAILS`: comma-separated admin emails that `pnpm db:seed` creates. Entries that are not email addresses are skipped.
 - `SEED_ADMIN_PASSWORD`: optional. When set, seeded or reset admins get this password instead of a generated one. Leave it empty in deployed environments.
 - `FRONTEND_URL`: where the website is served, used in email links.
 - `PUBLIC_API_URL`: where this API is served, used for one-click unsubscribe headers.
 - `ADMIN_PATH`: the admin route on the frontend (default `/admin`).
 - `ALLOWED_ORIGINS`: comma-separated origins allowed to call the API (defaults to `FRONTEND_URL`).
 - `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`: email sending. The from address must be a verified sender in Brevo. Without these, signups still save but no email is sent.
-- `ADMIN_NOTIFY_EMAIL`: comma-separated inboxes notified for every new signup. Placeholders that are not email addresses are ignored.
+- `ADMIN_NOTIFY_EMAIL`: comma-separated inboxes notified for every new signup. Entries that are not email addresses are ignored.
 
 ## Local setup
 
