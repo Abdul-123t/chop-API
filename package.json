@@ -1,0 +1,42 @@
+{
+  "name": "chop-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CHOP waitlist, email and newsletter API",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "packageManager": "pnpm@12.21.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.21.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "dev": "next dev --port 4000",
+    "build": "next build",
+    "start": "next start --port 4000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm typecheck && pnpm lint && pnpm test"
+  },
+  "dependencies": {
+    "@googleapis/sheets": "^18.1.3",
+    "next": "16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "eslint": "^10.15.0",
+    "eslint-config-next": "^16.4.6",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
