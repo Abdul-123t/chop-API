@@ -44,13 +44,14 @@ async function main() {
         console.log(`exists   ${email}`);
         continue;
       }
-      const password = generatePassword();
+      const chosen = process.env.SEED_ADMIN_PASSWORD?.trim();
+      const password = chosen || generatePassword();
       await prisma.adminUser.upsert({
         where: { email },
         create: { email, passwordHash: hashPassword(password) },
         update: { passwordHash: hashPassword(password) },
       });
-      console.log(`${existing ? 'reset  ' : 'created'}  ${email}  password: ${password}`);
+      console.log(`${existing ? 'reset  ' : 'created'}  ${email}  password: ${chosen ? '(SEED_ADMIN_PASSWORD)' : password}`);
     }
 
     for (const value of skipped) console.log(`skipped  ${value} (not an email address yet)`);
